@@ -28,7 +28,7 @@ def process_udp_request(data: bytes):
     converted[-1] = converted[-1].strip()
     out = f'RESPONSE,TCP,{TCP_PORT},{converted[-1]}'    
 
-    if "TCP" in converted:
+    if "UDP" in converted:
         out = 'ERROR,PROTOCOLO INVALIDO,,'
     # TODO, check if the target file exists...
 
@@ -68,7 +68,7 @@ def udp_protocol():
     Inicia o servidor UDP que ficará escutando na porta configurada,
     recebendo mensagens e respondendo conforme a lógica do protocolo.
     """
-    print(f"UDP Received listening on port 5698")
+    print(f"UDP Received listening on port {UDP_PORT}")
 
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_sock.bind(('0.0.0.0', UDP_PORT)) # TODO, change to read the config data from an 'ini' file
