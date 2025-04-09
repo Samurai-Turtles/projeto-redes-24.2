@@ -1,7 +1,11 @@
+import socket
 from sys import argv
 
+SERVER_IP = "127.0.0.1"
+UDP_PORT = "5035"  # Alterar posteriormente
 
-def request_file_over_udp():
+
+def request_file_over_udp(filename: str):
     """
     Esse passo é dividido em duas etapas:
 
@@ -11,7 +15,15 @@ def request_file_over_udp():
         - Caso contrário, retorna uma mensagem de erro, conforme o problema ocorrido
           (e.g. arquivo inexistente)
     """
-    pass
+
+    server_address = (SERVER_IP, UDP_PORT)
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    request_msg = f"REQUEST,TCP,{filename}"
+
+    udp_socket.sendto(request_msg, server_address)
+    data, _ = udp_socket.recvfrom(1024)
+
+    print(data)
 
 
 def download_file_over_tcp():
