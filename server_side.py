@@ -1,7 +1,6 @@
 import socket 
 import threading
 import configparser
-import os
 
 MAX_FILE_SIZE = 10240
 TCP_PORT = None
@@ -17,8 +16,8 @@ def load_config():
     
     TCP_PORT = int(config["SERVER_CONFIG"]["TCP_PORT"])
     UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
-    FILE_A = os.path.join("files", config["SERVER_CONFIG"]["FILE_A"])
-    FILE_B = os.path.join("files", config["SERVER_CONFIG"]["FILE_B"])
+    FILE_A = config["SERVER_CONFIG"]["FILE_A"]
+    FILE_B = config["SERVER_CONFIG"]["FILE_B"]
 
 
 def process_udp_request(data: bytes):
@@ -46,8 +45,7 @@ def process_udp_request(data: bytes):
     if "UDP" in converted:
         out = "ERROR,PROTOCOLO INVALIDO,,"
     
-    file_path = os.path.join("files", converted[-1])
-    if not (os.path.exists(file_path)):
+    if not (converted[-1] == FILE_A or converted[-1] == FILE_B):
         out = "ERROR,ARQUIVO INEXISTENTE,,"
 
     return out
