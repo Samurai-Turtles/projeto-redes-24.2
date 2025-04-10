@@ -1,9 +1,25 @@
 import socket 
 import threading
+import configparser
+import os
 
 MAX_FILE_SIZE = 10240
-TCP_PORT = 6000
-UDP_PORT = 5698
+TCP_PORT = None
+UDP_PORT = None
+FILE_A = None
+FILE_B = None
+
+def load_config():
+    global TCP_PORT, UDP_PORT, FILE_A, FILE_B
+
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    
+    TCP_PORT = int(config["SERVER_CONFIG"]["TCP_PORT"])
+    UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
+    FILE_A = os.path.join("files", config["SERVER_CONFIG"]["FILE_A"])
+    FILE_B = os.path.join("files", config["SERVER_CONFIG"]["FILE_B"])
+
 
 def process_udp_request(data: bytes):
     """
@@ -23,16 +39,16 @@ def process_udp_request(data: bytes):
         recebido seja inválido, uma mensagem
         de erro padrão será retornada.
     """
-
-    converted = data.decode('utf-8').split(',')
+    converted = data.decode("utf-8").split(",")
     converted[-1] = converted[-1].strip()
-    out = f'RESPONSE,TCP,{TCP_PORT},{converted[-1]}'    
+    out = f"RESPONSE,TCP,{TCP_PORT},{converted[-1]}"    
 
     if "UDP" in converted:
-        out = 'ERROR,PROTOCOLO INVALIDO,,'
+        out = "ERROR,PROTOCOLO INVALIDO,,"
     # TODO, check if the target file exists...
 
     return out
+
 
 def handle_tcp_client(conn, addr):
     print(f"TCP Client connected from {addr}")
@@ -41,20 +57,20 @@ def handle_tcp_client(conn, addr):
         data = conn.recv(MAX_FILE_SIZE)
 
         while not data:
-            print(data.decode('utf-8'))
+            print(data.decode("utf-8"))
             conn.sendall(data)
             data = conn.recv(MAX_FILE_SIZE)
     
     print(f"TCP Client disconnected from {addr}")
 
+
 def tcp_protocol():
     """
     Cria uma thread para cada cliente que estabelece uma conexão com o servidor.
     """
-
     tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    tcp_sock.bind(('0.0.0.0', TCP_PORT)) # TODO, change to read the config data from an 'ini' file
+    tcp_sock.bind(("0.0.0.0", TCP_PORT))
     tcp_sock.listen(5)
 
     while True:
@@ -63,15 +79,15 @@ def tcp_protocol():
         client_thread.daemon = True
         client_thread.start()
 
+
 def udp_protocol():
     """
     Inicia o servidor UDP que ficará escutando na porta configurada,
     recebendo mensagens e respondendo conforme a lógica do protocolo.
     """
     print(f"UDP Received listening on port {UDP_PORT}")
-
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_sock.bind(('0.0.0.0', UDP_PORT)) # TODO, change to read the config data from an 'ini' file
+    udp_sock.bind(("0.0.0.0", UDP_PORT))
 
     while True:
         data, addr = udp_sock.recvfrom(1024)
@@ -79,9 +95,10 @@ def udp_protocol():
         if not data:
             continue
         
-        print(f"UDP Received from {addr}: {data.decode('utf-8')}")
+        print(f"UDP Received from {addr}: {data.decode("utf-8")}")
         client_request = process_udp_request(data)
         udp_sock.sendto(str.encode(client_request), addr)
+
 
 def init_protocol(method):
     """
@@ -93,12 +110,14 @@ def init_protocol(method):
     method
         uma referência ao método relacionado a um método.
     """
-
     protocol_thread = threading.Thread(target=method)
     protocol_thread.daemon = True
     protocol_thread.start()
 
+
 def main():
+    load_config()
+
     init_protocol(udp_protocol)
     init_protocol(tcp_protocol)
     
