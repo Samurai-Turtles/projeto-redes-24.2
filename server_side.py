@@ -45,7 +45,10 @@ def process_udp_request(data: bytes):
 
     if "UDP" in converted:
         out = "ERROR,PROTOCOLO INVALIDO,,"
-    # TODO, check if the target file exists...
+    
+    file_path = os.path.join("files", converted[-1])
+    if not (os.path.exists(file_path)):
+        out = "ERROR,ARQUIVO INEXISTENTE,,"
 
     return out
 
