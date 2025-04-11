@@ -1,5 +1,6 @@
 import socket
 from sys import argv, exit
+from tempfile import template
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
@@ -24,10 +25,11 @@ def start_negotiation(requested_file: str) -> dict:
     """
 
     server_address = (SERVER_IP, UDP_PORT)
-    request_msg = f"REQUEST,UDP,{requested_file}"
+    req_template = "REQUEST,UDP,{file}"
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        udp_socket.sendto(request_msg.encode("utf-8"), server_address)
+        request = req_template.format(file=requested_file)
+        udp_socket.sendto(request.encode("utf-8"), server_address)
         data, _ = udp_socket.recvfrom(1024)
 
     response = parse_response(data)
@@ -61,18 +63,20 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
     filename = request_data.get("FILENAME")
 
     server_address = (SERVER_IP, socket_port)
-    request_msg = f"get,{filename}"
     received_bytes = 0
+    req_template = "get,{file}"
+    ack_template = "ftcp_ack,{bytes}"
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
         print(f"Connecting to server at {SERVER_IP}:{socket_port}...")
         tcp_socket.connect(server_address)
 
-        tcp_socket.sendall(request_msg.encode("utf-8"))
+        request = req_template.format(file=filename)
+        tcp_socket.sendall(request.encode("utf-8"))
         response = tcp_socket.recv(MAX_FILE_SIZE)
 
         received_bytes = len(response)
-        ack = f"ftcp_ack,{received_bytes}"
+        ack = ack_template.format(bytes=received_bytes)
         tcp_socket.sendall(ack.encode("utf-8"))
     
     return filename, received_bytes
