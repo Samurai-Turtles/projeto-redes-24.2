@@ -1,33 +1,42 @@
 import socket
-from sys import argv
+from sys import argv, exit
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
 UDP_PORT = 5698  # Alterar posteriormente
 
 
-def request_file_over_udp(filename: str) -> str:
+def start_negotiation(requested_file: str) -> dict:
     """
-    Esse passo é dividido em duas etapas:
+    Envia uma requisição (via UDP) para o servidor, solicitando um determinado
+    arquivo.
 
-    1. Cliente solicita, via UDP, a transferência de um arquivo
-    2. Servidor responde conforme a validade da requisição
-        - Se a requisição for válida, retorna a porta do servidor TCP e o arquivo solicitado
-        - Caso contrário, retorna uma mensagem de erro, conforme o problema ocorrido
-          (e.g. arquivo inexistente)
+    Parameters
+    ----------
+    requested_file : str
+        O nome do arquivo solicitado.
+
+    Returns
+    -------
+    dict
+        Retorna um mapa contendo as informações retornadas pelo servidor. Caso
+        a negociação falhe, uma exceção é lançada informando o erro ocorrido.
     """
 
     server_address = (SERVER_IP, UDP_PORT)
-    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    request_msg = f"REQUEST,TCP,{filename}"
+    request_msg = f"REQUEST,UDP,{requested_file}"
 
-    udp_socket.sendto(request_msg.encode("utf-8"), server_address)
-    data, _ = udp_socket.recvfrom(1024)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+        udp_socket.sendto(request_msg.encode("utf-8"), server_address)
+        data, _ = udp_socket.recvfrom(1024)
 
-    decoded_data = data.decode("utf-8")
+    response = parse_response(data)
 
-    print(decoded_data)
-    return decoded_data
+    if response.get("FAILED"):
+        print(response.get("ERROR_MSG"))
+        exit(1)
+
+    return response
 
 
 def download_file_over_tcp(filename: str, response: str):
@@ -56,7 +65,7 @@ def download_file_over_tcp(filename: str, response: str):
     response = tcp_socket.recv(MAX_FILE_SIZE)
 
     # Confirmação pelo Cliente (ACK)
-    num_bytes = MAX_FILE_SIZE # TODO: somehow calculate the file size
+    num_bytes = MAX_FILE_SIZE  # TODO: somehow calculate the file size
     ack = f"ftcp_ack,{num_bytes}"
     tcp_socket.sendall(ack.encode("utf-8"))
 
@@ -64,7 +73,54 @@ def download_file_over_tcp(filename: str, response: str):
     tcp_socket.close()
 
 
+def parse_response(data: bytes) -> dict:
+    """
+    Extrai as informações da resposta do servidor.
+
+    Parameters
+    ----------
+    data : bytes
+        Os dados de uma resposta do servidor.
+
+    Returns
+    -------
+    dict
+        Um mapa contendo as informações da requisição. Contém os seguintes
+        campos:
+
+        - PROTOCOL (str): o protocolo indicado para a transferência do arquivo
+        - FAILED (bool): flag que indica se a requisição falhou
+        - SOCKET_PORT (int): a porta do socket para a transferência do arquivo
+        - FILENAME (str): o nome do arquivo solicitado
+        - ERROR_MSG (str): mensagem de erro retornada pelo servidor, em caso de 
+          falhas
+
+        Para requisições válidas, o campo ERROR_MSG terá valor "None".
+
+        Para requisições inválidas, os campos PROTOCOL, FILENAME e SOCKET_PORT
+        terão valor "None".
+    """
+
+    res_data = {
+        "FAILED": False,
+        "SOCKET_PORT": None,
+        "PROTOCOL": None,
+        "FILENAME": None,
+        "ERROR_MSG": None,
+    }
+
+    decoded_data = data.decode().split(",")
+    command, *fields = decoded_data
+    if command == "ERROR":
+        res_data["FAILED"] = True
+        res_data["ERROR_MSG"] = fields[0]
+    else:
+        res_data["PROTOCOL"], res_data["SOCKET_PORT"], res_data["FILENAME"] = decoded_data
+
+    return res_data
+
+
 if __name__ == "__main__":
-    requested_file = argv[1] # TODO: add argument amount validation?
-    response = request_file_over_udp(requested_file)
+    requested_file = argv[1]  # TODO: add argument amount validation?
+    response = start_negotiation(requested_file)
     download_file_over_tcp(requested_file, response)
