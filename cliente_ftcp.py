@@ -39,38 +39,43 @@ def start_negotiation(requested_file: str) -> dict:
     return response
 
 
-def download_file_over_tcp(filename: str, response: str):
+def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
     """
-    Este passo é dividido em quatro etapas:
+    Solicita a transferência (via TCP) do arquivo indicado na negociação inicial
+    para o servidor. Ao término da transferência, envia um ACK para o servidor
+    com o número de bytes recebido, encerrando a conexão.
 
-    1. Cliente estabelece conexão com o servidor TCP
-    2. Cliente solicita o arquivo para transferência
-    3. Servidor transfere o arquivo solicitado
-    4. Cliente verifica o tamanho da arquivo e retorna um ACK para o servidor
+    Parameters
+    ----------
+    request_data : dict
+        Um mapa com as informações retornadas da negociação inicial com o
+        servidor.
+
+    Returns
+    -------
+    tuple[str, int]
+        Uma tupla contendo o nome do arquivo e seu tamanho em bytes.
     """
-    # Estabelecimento de Conexão
-    split_response = response.split(",")
-    tcp_port = int(split_response[-2])
 
-    server_address = (SERVER_IP, tcp_port)
-    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_socket.connect(server_address)
-    print(f"Connected to server at {SERVER_IP}:{tcp_port}")
+    socket_port = request_data.get("SOCKET_PORT")
+    filename = request_data.get("FILENAME")
 
-    # Solicitação do Arquivo
-    file_request = f"get,{filename}"
-    tcp_socket.sendall(file_request.encode("utf-8"))
+    server_address = (SERVER_IP, socket_port)
+    request_msg = f"get,{filename}"
+    received_bytes = 0
 
-    # Envio dos Dados
-    response = tcp_socket.recv(MAX_FILE_SIZE)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
+        print(f"Connecting to server at {SERVER_IP}:{socket_port}...")
+        tcp_socket.connect(server_address)
 
-    # Confirmação pelo Cliente (ACK)
-    num_bytes = MAX_FILE_SIZE  # TODO: somehow calculate the file size
-    ack = f"ftcp_ack,{num_bytes}"
-    tcp_socket.sendall(ack.encode("utf-8"))
+        tcp_socket.sendall(request_msg.encode("utf-8"))
+        response = tcp_socket.recv(MAX_FILE_SIZE)
 
-    # Encerramento da Conexão
-    tcp_socket.close()
+        received_bytes = len(response)
+        ack = f"ftcp_ack,{received_bytes}"
+        tcp_socket.sendall(ack.encode("utf-8"))
+    
+    return filename, received_bytes
 
 
 def parse_response(data: bytes) -> dict:
@@ -124,7 +129,9 @@ if __name__ == "__main__":
     if len(argv) != 2:
         print("Uso: python3 client_ftcp.py [ARQUIVO]")
         exit(1)
-    
+
     requested_file = argv[1]
     response = start_negotiation(requested_file)
-    download_file_over_tcp(requested_file, response)
+    file, byte_count = transfer_file_over_tcp(requested_file, response)
+
+    print(f"File {file} ({byte_count} B) received successfully!")
