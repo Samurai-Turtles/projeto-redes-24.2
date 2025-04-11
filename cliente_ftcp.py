@@ -24,7 +24,7 @@ def start_negotiation(requested_file: str) -> dict:
     """
 
     server_address = (SERVER_IP, UDP_PORT)
-    req_template = "REQUEST,UDP,{file}"
+    req_template = "REQUEST,TCP,{file}"
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
         request = req_template.format(file=requested_file)
@@ -58,7 +58,7 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
         Uma tupla contendo o nome do arquivo e seu tamanho em bytes.
     """
 
-    socket_port = request_data.get("SOCKET_PORT")
+    socket_port = int(request_data.get("SOCKET_PORT"))
     filename = request_data.get("FILENAME")
 
     server_address = (SERVER_IP, socket_port)
@@ -123,7 +123,7 @@ def parse_response(data: bytes) -> dict:
         res_data["FAILED"] = True
         res_data["ERROR_MSG"] = fields[0]
     else:
-        res_data["PROTOCOL"], res_data["SOCKET_PORT"], res_data["FILENAME"] = decoded_data
+        res_data["PROTOCOL"], res_data["SOCKET_PORT"], res_data["FILENAME"] = fields
 
     return res_data
 
@@ -135,6 +135,6 @@ if __name__ == "__main__":
 
     requested_file = argv[1]
     response = start_negotiation(requested_file)
-    file, byte_count = transfer_file_over_tcp(requested_file, response)
+    file, byte_count = transfer_file_over_tcp(response)
 
     print(f"File {file} ({byte_count} B) received successfully!")
