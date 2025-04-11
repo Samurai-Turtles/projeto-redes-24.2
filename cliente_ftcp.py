@@ -1,6 +1,5 @@
 import socket
 from sys import argv, exit
-from tempfile import template
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
