@@ -121,6 +121,10 @@ def parse_response(data: bytes) -> dict:
 
 
 if __name__ == "__main__":
-    requested_file = argv[1]  # TODO: add argument amount validation?
+    if len(argv) != 2:
+        print("Uso: python3 client_ftcp.py [ARQUIVO]")
+        exit(1)
+    
+    requested_file = argv[1]
     response = start_negotiation(requested_file)
     download_file_over_tcp(requested_file, response)
