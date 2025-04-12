@@ -11,6 +11,9 @@ FILES = {"FILE_A": None, "FILE_B": None}
 
 
 def load_config():
+    """
+    Carrega as configurações definidas no arquivo `config.ini`
+    """
     global TCP_PORT, UDP_PORT, FILE_A, FILE_B
 
     config = configparser.ConfigParser()
@@ -27,7 +30,7 @@ def process_udp_request(data: bytes):
     Processa uma requisição recebida via UDP, interpretando os dados
     recebidos e formatando uma resposta de acordo com o protocolo definido.
 
-    Parameters
+    Parameter
     ----------
     data : bytes
         os dados recebidos do cliente, em formato de bytes. Espera-se
@@ -54,6 +57,20 @@ def process_udp_request(data: bytes):
 
 
 def process_tcp_request(data: bytes):
+    """
+    Processa  e valida a requisição enviado pelo cliente.
+
+    Parameter
+    ---------
+    data : bytes
+        um conjunto de bytes que representa a mensagem de requisição enviada pelo cliente.
+
+    Returns
+    -------
+    bytes
+        um conjunto de bytes que representa o arquivo solicitado pelo usuário. Retorna
+        o tipo _None_ se a requisição não for encontrado.
+    """
     converted = data.decode().split(",")
     converted[-1] = converted[-1].strip()
     out = None
@@ -68,6 +85,17 @@ def process_tcp_request(data: bytes):
 
 
 def handle_tcp_client(conn, addr):
+    """
+    Consome a mensagen de requisição vinda do cliente e envia o arquivo solicitado, caso
+    não haja problemas no processo de validação e processamento da requisição.
+
+    Parameters
+    ----------
+    conn
+        é um novo socket que representa a conexão com o cliente. 
+    addr
+         é uma tupla que contém o endereço do cliente.
+    """
     print(f"TCP Client connected from {addr}")
 
     with conn:
@@ -127,7 +155,7 @@ def udp_protocol():
 def init_protocol(method):
     """
     Inicia uma thread que vai executar um método relacionado ao protocolo
-    de interesse
+    de interesse.
 
     Parameter
     ---------
