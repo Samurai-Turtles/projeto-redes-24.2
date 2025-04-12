@@ -36,11 +36,11 @@ def start_negotiation(requested_file: str) -> dict:
     """
 
     server_address = (SERVER_IP, UDP_PORT)
-    req_template = "REQUEST,TCP,{file}"
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        request = req_template.format(file=requested_file)
-        udp_socket.sendto(request.encode("utf-8"), server_address)
+        request = f"REQUEST,TCP,{requested_file}"
+        udp_socket.sendto(request.encode(), server_address)
+        
         data, _ = udp_socket.recvfrom(1024)
 
     response = parse_response(data)
