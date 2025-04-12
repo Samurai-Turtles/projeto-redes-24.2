@@ -14,7 +14,7 @@ def load_config():
     """
     Carrega as configurações definidas no arquivo `config.ini`
     """
-    global TCP_PORT, UDP_PORT, FILE_A, FILE_B
+    global TCP_PORT, UDP_PORT, FILES
 
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -50,7 +50,7 @@ def process_udp_request(data: bytes):
     if "UDP" in converted:
         out = "ERROR,PROTOCOLO INVALIDO,,"
 
-    if not (converted[-1] in FILES.values()):
+    if converted[-1] not in FILES.values():
         out = "ERROR,ARQUIVO INEXISTENTE,,"
 
     return out
@@ -106,7 +106,7 @@ def handle_tcp_client(conn, addr):
 
         processed_file = process_tcp_request(data)
 
-        if processed_file != None:
+        if processed_file is not None:
             conn.sendall(processed_file)
             print(f"File sent to {addr}.")
 
