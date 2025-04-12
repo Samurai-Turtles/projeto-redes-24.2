@@ -1,9 +1,21 @@
 import socket
 from sys import argv, exit
+import configparser
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
-UDP_PORT = 5698  # Alterar posteriormente
+UDP_PORT = -1
+
+def init_udp_port():
+    """
+    Carrega a configuração de porta UDP definidas no arquivo `config.ini`
+    """
+    global UDP_PORT
+
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+
+    UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
 
 
 def start_negotiation(requested_file: str) -> dict:
@@ -63,21 +75,20 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
 
     server_address = (SERVER_IP, socket_port)
     received_bytes = 0
-    req_template = "get,{file}"
-    ack_template = "ftcp_ack,{bytes}"
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
         print(f"Connecting to server at {SERVER_IP}:{socket_port}...")
         tcp_socket.connect(server_address)
 
-        request = req_template.format(file=filename)
-        tcp_socket.sendall(request.encode("utf-8"))
+        request = f"get,{filename}"
+        tcp_socket.sendall(request.encode())
+        
         response = tcp_socket.recv(MAX_FILE_SIZE)
-
         received_bytes = len(response)
-        ack = ack_template.format(bytes=received_bytes)
-        tcp_socket.sendall(ack.encode("utf-8"))
-    
+
+        ack = f"ftcp_ack,{received_bytes}"
+        tcp_socket.sendall(ack.encode())
+
     return filename, received_bytes
 
 
@@ -100,7 +111,7 @@ def parse_response(data: bytes) -> dict:
         - FAILED (bool): flag que indica se a requisição falhou
         - SOCKET_PORT (int): a porta do socket para a transferência do arquivo
         - FILENAME (str): o nome do arquivo solicitado
-        - ERROR_MSG (str): mensagem de erro retornada pelo servidor, em caso de 
+        - ERROR_MSG (str): mensagem de erro retornada pelo servidor, em caso de
           falhas
 
         Para requisições válidas, o campo ERROR_MSG terá valor "None".
@@ -119,6 +130,7 @@ def parse_response(data: bytes) -> dict:
 
     decoded_data = data.decode().split(",")
     command, *fields = decoded_data
+
     if command == "ERROR":
         res_data["FAILED"] = True
         res_data["ERROR_MSG"] = fields[0]
@@ -133,6 +145,8 @@ if __name__ == "__main__":
         print("Uso: python3 client_ftcp.py [ARQUIVO]")
         exit(1)
 
+    init_udp_port()
+    
     requested_file = argv[1]
     response = start_negotiation(requested_file)
     file, byte_count = transfer_file_over_tcp(response)
