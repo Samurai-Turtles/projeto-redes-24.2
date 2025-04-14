@@ -2,23 +2,23 @@ import socket
 import threading
 import configparser
 
-MAX_FILE_SIZE = 10240
-MAX_REQUEST_SIZE = 1024
+# Váriaveis de configuração do servidor
+MAX_REQUEST_SIZE = None
 TCP_PORT = None
 UDP_PORT = None
-FILES_PATH = "./files/"  # TODO, ler de um config?
 FILES = {"FILE_A": None, "FILE_B": None}
 
 
 def load_config():
     """
-    Carrega as configurações definidas no arquivo `config.ini`
+    Carrega as configurações definidas no arquivo de configurações.
     """
-    global TCP_PORT, UDP_PORT, FILES
+    global MAX_REQUEST_SIZE, TCP_PORT, UDP_PORT, FILES
 
     config = configparser.ConfigParser()
     config.read("config.ini")
 
+    MAX_REQUEST_SIZE = int(config["SERVER_CONFIG"]["MAX_REQUEST_SIZE"])
     TCP_PORT = int(config["SERVER_CONFIG"]["TCP_PORT"])
     UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
     FILES["FILE_A"] = config["SERVER_CONFIG"]["FILE_A"]
@@ -78,7 +78,7 @@ def process_tcp_request(data: bytes):
     if converted[0] != "get":
         return out
 
-    with open(f"{FILES_PATH}{converted[-1]}", 'rb') as file:
+    with open(f"./files/{converted[-1]}", 'rb') as file:
         out = file.read()
 
     return out
@@ -96,7 +96,7 @@ def handle_tcp_client(conn, addr):
     addr
          é uma tupla que contém o endereço do cliente.
     """
-    print(f"TCP Client connected from {addr}")
+    print(f"[SERVER] TCP Client connected from {addr}")
 
     with conn:
         data = None
@@ -108,9 +108,9 @@ def handle_tcp_client(conn, addr):
 
         if processed_file is not None:
             conn.sendall(processed_file)
-            print(f"File sent to {addr}.")
+            print(f"[SERVER] File sent to {addr}.")
 
-    print(f"TCP Client disconnected from {addr}")
+    print(f"[SERVER] TCP Client disconnected from {addr}")
 
 
 def tcp_protocol():
@@ -135,7 +135,7 @@ def udp_protocol():
     Inicia o servidor UDP que ficará escutando na porta configurada,
     recebendo mensagens e respondendo conforme a lógica do protocolo.
     """
-    print(f"UDP Received listening on port {UDP_PORT}")
+    print(f"[SERVER] Listening via UDP on port {UDP_PORT}")
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_sock.bind(("0.0.0.0", UDP_PORT))
 
@@ -146,7 +146,7 @@ def udp_protocol():
             continue
 
         protocol_message = data.decode("utf-8")
-        print(f"UDP Received from {addr}: {protocol_message}")
+        print(f"[SERVER] Received via UDP from {addr}: {protocol_message}")
 
         client_request = process_udp_request(data)
         udp_sock.sendto(str.encode(client_request), addr)
@@ -177,7 +177,7 @@ def main():
         while True:
             pass
     except KeyboardInterrupt:
-        print("\nServidor Encerrado.")
+        print("\nSever has been closed.")
 
 
 if __name__ == "__main__":
