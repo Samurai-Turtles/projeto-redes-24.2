@@ -61,7 +61,7 @@ def start_negotiation(requested_file: str) -> dict:
     response = parse_response(data)
 
     if response.get("FAILED"):
-        print(f"[ERROR]: {response.get("ERROR_MSG")}")
+        print(f"[ERROR]: {response.get('ERROR_MSG')}")
         exit(1)
 
     return response
