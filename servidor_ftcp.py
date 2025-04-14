@@ -177,7 +177,7 @@ def main():
         while True:
             pass
     except KeyboardInterrupt:
-        print("\nSever has been closed.")
+        print("\nServer has been closed.")
 
 
 if __name__ == "__main__":
