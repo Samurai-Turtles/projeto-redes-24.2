@@ -1,7 +1,6 @@
 import socket
 from sys import argv, exit
 import configparser
-from time import sleep
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
@@ -46,7 +45,7 @@ def start_negotiation(requested_file: str) -> dict:
         try:
             udp_socket.sendto(request.encode(), server_address)
             data, _ = udp_socket.recvfrom(1024)
-        
+
         except socket.timeout:
             print(f"[TIMEOUT]: Unable to get response from {server_address}")
             exit(1)
@@ -54,7 +53,7 @@ def start_negotiation(requested_file: str) -> dict:
     response = parse_response(data)
 
     if response.get("FAILED"):
-        print(response.get("ERROR_MSG"))
+        print(f"[ERROR]: {response.get("ERROR_MSG")}")
         exit(1)
 
     return response
@@ -85,7 +84,7 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
     received_bytes = 0
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
-        print(f"Connecting to server at {SERVER_IP}:{socket_port}...")
+        print(f"[CLIENT] Connecting to {SERVER_IP} at port {socket_port}")
         tcp_socket.settimeout(5.0)
 
         try:
@@ -174,4 +173,4 @@ if __name__ == "__main__":
     response = start_negotiation(requested_file)
     file, byte_count = transfer_file_over_tcp(response)
 
-    print(f"File {file} ({byte_count} B) received successfully!")
+    print(f"[CLIENT] File \"{file}\" ({byte_count} B) received successfully!")
