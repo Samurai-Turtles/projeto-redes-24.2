@@ -1,10 +1,12 @@
 import socket
 from sys import argv, exit
 import configparser
+from time import sleep
 
 MAX_FILE_SIZE = 10240
 SERVER_IP = "127.0.0.1"
 UDP_PORT = -1
+
 
 def init_udp_port():
     """
@@ -38,10 +40,16 @@ def start_negotiation(requested_file: str) -> dict:
     server_address = (SERVER_IP, UDP_PORT)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+        udp_socket.settimeout(5.0)
         request = f"REQUEST,TCP,{requested_file}"
-        udp_socket.sendto(request.encode(), server_address)
+
+        try:
+            udp_socket.sendto(request.encode(), server_address)
+            data, _ = udp_socket.recvfrom(1024)
         
-        data, _ = udp_socket.recvfrom(1024)
+        except socket.timeout:
+            print(f"[TIMEOUT]: Unable to get response from {server_address}")
+            exit(1)
 
     response = parse_response(data)
 
@@ -78,16 +86,31 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
         print(f"Connecting to server at {SERVER_IP}:{socket_port}...")
-        tcp_socket.connect(server_address)
+        tcp_socket.settimeout(5.0)
 
-        request = f"get,{filename}"
-        tcp_socket.sendall(request.encode())
-        
-        response = tcp_socket.recv(MAX_FILE_SIZE)
-        received_bytes = len(response)
+        try:
+            tcp_socket.connect(server_address)
 
-        ack = f"ftcp_ack,{received_bytes}"
-        tcp_socket.sendall(ack.encode())
+            request = f"get,{filename}"
+            tcp_socket.sendall(request.encode())
+
+            response = tcp_socket.recv(MAX_FILE_SIZE)
+            received_bytes = len(response)
+
+            ack = f"ftcp_ack,{received_bytes}"
+            tcp_socket.sendall(ack.encode())
+
+        except socket.timeout:
+            print("[TIMEOUT]: Connection with TCP server has timed out.")
+            exit(1)
+
+        except ConnectionRefusedError:
+            print("[ERROR]: Connection was refused by the server.")
+            exit(1)
+
+        except BrokenPipeError:
+            print(f"[ERROR]: Connection was terminated while data transmission.")
+            exit(1)
 
     return filename, received_bytes
 
@@ -146,7 +169,7 @@ if __name__ == "__main__":
         exit(1)
 
     init_udp_port()
-    
+
     requested_file = argv[1]
     response = start_negotiation(requested_file)
     file, byte_count = transfer_file_over_tcp(response)
