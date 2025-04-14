@@ -90,7 +90,7 @@ Nesta seção, vamos aprender os fundamentos do Wireshark analisando tráfegos D
     *   **B) Painel de Detalhes do Pacote:** Exibe as informações decodificadas do pacote selecionado na lista, organizadas por camadas (Frame, Ethernet, IP, TCP/UDP, Protocolo de Aplicação). Você pode expandir/recolher cada camada clicando nas setas.
     *   **C) Painel de Bytes do Pacote:** Mostra o conteúdo bruto do pacote selecionado em hexadecimal e ASCII.
 
-    ![Interface Principal do Wireshark](img/dhcp.png) 
+    ![Interface Principal do Wireshark](../img/dhcp.png) 
 
 
 4.  **Filtros de Exibição:** A barra de filtro (geralmente acima do Painel de Lista de Pacotes) é uma das ferramentas mais poderosas. Ela permite que você mostre apenas os pacotes que correspondem a um critério específico (sem modificar o arquivo original). Digite sua expressão de filtro e pressione Enter para aplicá-la. Para limpar o filtro, clique no 'X' à direita da barra.
@@ -119,7 +119,7 @@ O protocolo DNS (Domain Name System) é usado para traduzir nomes de domínio le
 2.  **Aplique o Filtro:** Digite `dns` na barra de filtro e pressione Enter.
 3.  **Observe os Pacotes:** Você verá pares de pacotes: uma consulta ("Standard query") e uma resposta ("Standard query response").
 
-  ![Interface Principal do Wireshark](img/dns.png) 
+  ![Interface Principal do Wireshark](../img/dns.png) 
 
 4.  **Examine os Detalhes:**
     *   **Selecione** um pacote de **Standard query** (por exemplo, para `www.google.com`, se houver no arquivo). No Painel de Detalhes (B), expanda a seção "Domain Name System" e depois "Queries". Observe o nome sendo consultado e o tipo de registro solicitado (geralmente A para IPv4 ou AAAA para IPv6).
