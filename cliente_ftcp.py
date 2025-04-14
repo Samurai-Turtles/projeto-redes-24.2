@@ -2,21 +2,27 @@ import socket
 from sys import argv, exit
 import configparser
 
-MAX_FILE_SIZE = 10240
-SERVER_IP = "127.0.0.1"
-UDP_PORT = -1
+# Váriaveis de configuração do cliente
+UDP_PORT = None
+MAX_FILE_SIZE = None
+SERVER_IP = None
 
 
-def init_udp_port():
+def load_client_settings():
     """
-    Carrega a configuração de porta UDP definidas no arquivo `config.ini`
+    Carrega as configurações do cliente (e.g. porta UDP do servidor, tamanho
+    máximo de arquivo, endereço IP do servor), presentes no arquivo de 
+    configurações.
     """
-    global UDP_PORT
+
+    global UDP_PORT, MAX_FILE_SIZE, SERVER_IP
 
     config = configparser.ConfigParser()
     config.read("config.ini")
 
     UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
+    MAX_FILE_SIZE = int(config["CLIENT_CONFIG"]["MAX_FILE_SIZE"])
+    SERVER_IP = config["CLIENT_CONFIG"]["SERVER_IP"]
 
 
 def start_negotiation(requested_file: str) -> dict:
@@ -108,7 +114,7 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
             exit(1)
 
         except BrokenPipeError:
-            print(f"[ERROR]: Connection was terminated while data transmission.")
+            print("[ERROR]: Connection was terminated while data transmission.")
             exit(1)
 
     return filename, received_bytes
@@ -167,7 +173,7 @@ if __name__ == "__main__":
         print("Uso: python3 client_ftcp.py [ARQUIVO]")
         exit(1)
 
-    init_udp_port()
+    load_client_settings()
 
     requested_file = argv[1]
     response = start_negotiation(requested_file)
