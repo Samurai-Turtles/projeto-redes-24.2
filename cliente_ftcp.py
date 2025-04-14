@@ -6,6 +6,7 @@ import configparser
 UDP_PORT = None
 MAX_FILE_SIZE = None
 SERVER_IP = None
+TIMEOUT_LIMIT = None
 
 
 def load_client_settings():
@@ -15,7 +16,7 @@ def load_client_settings():
     configurações.
     """
 
-    global UDP_PORT, MAX_FILE_SIZE, SERVER_IP
+    global UDP_PORT, MAX_FILE_SIZE, SERVER_IP, TIMEOUT_LIMIT
 
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -23,6 +24,7 @@ def load_client_settings():
     UDP_PORT = int(config["SERVER_CONFIG"]["UDP_PORT"])
     MAX_FILE_SIZE = int(config["CLIENT_CONFIG"]["MAX_FILE_SIZE"])
     SERVER_IP = config["CLIENT_CONFIG"]["SERVER_IP"]
+    TIMEOUT_LIMIT = float(config["CLIENT_CONFIG"]["TIMEOUT_LIMIT"])
 
 
 def start_negotiation(requested_file: str) -> dict:
@@ -45,7 +47,7 @@ def start_negotiation(requested_file: str) -> dict:
     server_address = (SERVER_IP, UDP_PORT)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        udp_socket.settimeout(5.0)
+        udp_socket.settimeout(TIMEOUT_LIMIT)
         request = f"REQUEST,TCP,{requested_file}"
 
         try:
@@ -91,7 +93,7 @@ def transfer_file_over_tcp(request_data: dict) -> tuple[str, int]:
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
         print(f"[CLIENT] Connecting to {SERVER_IP} at port {socket_port}")
-        tcp_socket.settimeout(5.0)
+        tcp_socket.settimeout(TIMEOUT_LIMIT)
 
         try:
             tcp_socket.connect(server_address)
